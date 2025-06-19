@@ -1,0 +1,166 @@
+---
+title: "Blatt7_RAufgaben"
+author: "Fynn-Ole Claussen, Johann Fischer, Mika Kohlhammer"
+date: "2025-06-19"
+output: pdf_document
+---
+
+## Aufgabe R 7.1
+Laden den Datensatz und ggplot
+```{r}
+library(ggplot2)
+data(midwest)
+```
+
+### a)
+```{r 7_1a}
+midwest$log_poptotal <- log(midwest$poptotal)
+```
+
+### b)
+Überprüfen die Normalverteilungsannahme mittels eines QQ-Plot.
+```{r 7_1b}
+qqnorm(midwest$log_poptotal, main = "QQ-Plot von log_poptotal")
+qqline(midwest$log_poptotal, col = "red")
+
+```
+An den Rändern stimmen die Daten nicht mit der Linie überein, was gegen die Normalverteilung spricht. Allerdings sind dies wenige Punkte im Vergleich zu denen in der Mitte, welcher der Linie folgen.
+### c)
+Prüfen ob die Bevölkerung nach Region normalverteilt ist.
+```{r 7_1ci}
+print(ggplot(midwest, aes(sample = log_poptotal)) +
+  stat_qq() +
+  stat_qq_line() +
+  facet_grid(cols = vars(inmetro), labeller = labeller(inmetro = c("0" = "Nicht-Metropolregion", "1" = "Metropolregion"))) +
+  labs(title = "QQ-Plots für die logarithmierte Bevölkerung nach Zugehörigkeit zu einer Metropolregion"))
+```
+Es scheint vereinzelte Aureißer zu geben, welche besonders Hohe oder niedrige Bevölkerungszahlen aufweisen. Insgesamt liegen die meisten Daten, besonders zu den ländlichen Regionen, auf/an der Graden.
+
+
+Erstellen die Boxplots.
+```{r 7_1cii}
+#Boxplots
+print(ggplot(midwest, aes(x = as.factor(inmetro), y = log_poptotal)) +
+        geom_boxplot() +
+        labs(x = "Herkunft", y = "Bevölkerungszahl logaritmisch", 
+             title = "Boxplots der logarithmierten Bevölkerungszahl nach Region") +
+        scale_x_discrete(labels = c("0" = "ländliche Region", "1" = "Metropolregion")))
+```
+
+### d)
+Entscheiden uns für den einfachen t-Test.
+
+### e)
+Schritt 1: Vorwissen
+Normalverteilungsannahme, alpha = 0,05, Daten aus midwest => eine Stichprobe
+
+Schritt 2: Formulierung der Hypothesen
+H0: μ_metro = μ_ländlich (kein Unterschied in den mittleren log. Bevölkerungszahlen)
+H1: μ_metro ≠ μ_ländlich (es gibt einen Unterschied)
+
+Schritt 3: Wahl der Teststatistik
+Lage, normalverteilt, Varianz unbekannt, eine Stichprobe => einfacher t-Test
+
+Schritt 4: Festlegung des Signifikanzniveaus
+```{r SigNiveau}
+alpha <- 0.05
+```
+
+Schritt 5:
+Daten aus midwest.
+
+Schritt 6: Berechnung der Teststatistik 
+t-Test durchführen
+
+```{r tTest}
+t_test_ergebnis <- t.test(log_poptotal ~ inmetro, data = midwest)
+print(t_test_ergebnis)
+```
+
+Schritt 7: Entscheidung
+```{r Entscheidung}
+entscheidung <- ifelse(t_test_ergebnis$p.value < alpha, 
+                   "H0 wird abgelehnt", 
+                   "H0 kann nicht abgelehnt werden")
+cat("Entscheidung:", entscheidung, "\n")
+```
+
+
+Schritt 8: Interpretation
+```{r Interpretation}
+cat("Interpretation: ", ifelse(t_test_ergebnis$p.value < alpha,
+                               "Es gibt einen statistisch signifikanten Unterschied zwischen den 
+                                mittleren logarithmierten Bevölkerungszahlen in Metropolregionen und
+                                ländlichen Regionen.",
+                               "Es gibt keinen statistisch signifikanten Unterschied zwischen den
+                                mittleren logarithmierten Bevölkerungszahlen in Metropolregionen und
+                                ländlichen Regionen."), "\n")
+```
+
+
+## Aufgabe R 7.2
+
+### a)
+Grafischer Vergleich des Anteils an Hochschulabsolventen nach Region.
+```{r 7_2a}
+print(ggplot(midwest, aes(x = as.factor(inmetro), y = percollege)) +
+  geom_boxplot() +
+  labs(x = "Region", y = "Anteil Hochschulabsolventen (%)",
+       title = "Vergleich des Anteils der Hochschulabsolventen nach Region") +
+  scale_x_discrete(labels = c("0" = "ländliche Region", "1" = "Metropolregion")))
+```
+
+### b)
+Führen den Wilcoxon-Paardifferenzentest durch
+
+Hypothesen: 
+H0: μ_metro = μ_ländlich (kein Unterschied in den Anteilen an Hochschulabsolventen)
+H1: μ_metro ≠ μ_ländlich (es gibt einen Unterschied)
+
+```{r wilcoxon}
+wilcoxon_test <- wilcox.test(percollege ~ inmetro, data = midwest)
+print(wilcoxon_test)
+```
+
+Alpha wie eben 0,05.
+
+Testentscheidung und Interpretation:
+```{r InterpretationWilcoxon}
+if (wilcoxon_test$p.value < alpha) {
+  cat("Der p-Wert von", wilcoxon_test$p.value, "ist kleiner als das Signifikanzniveau von", alpha, ".\n",
+      "Daher lehnen wir die Nullhypothese ab. Es gibt einen statistisch signifikanten\n",
+      "Unterschied im Anteil der Hochschulabsolventen zwischen städtischen und ländlichen Regionen.")
+} else {
+  cat("Der p-Wert von", wilcoxon_test$p.value, "ist größer als das Signifikanzniveau von", alpha, ".\n",
+      "Daher können wir die Nullhypothese nicht ablehnen. Es gibt keinen statistisch signifikanten\n",
+      "Unterschied im Anteil der Hochschulabsolventen zwischen städtischen und ländlichen Regionen.")
+}
+```
+
+## Aufgabe 3
+
+
+### a)
+```{r 3a}
+midwest$is_poor <- ifelse(midwest$percbelowpoverty >= 15, 1, 0)
+```
+
+
+### b)
+```{r 3_4Felder}
+Vier_Felder <- xtabs(~ midwest$is_poor + midwest$inmetro)
+print(Vier_Felder)
+```
+
+### c)
+Unsere Nullhypothese ist, dass die Variablen unabh. voneinander sind,
+d.h. sie wird abgelehnt, wenn p < alpha = 5% ist
+```{r 3_Chisq}
+TestRes <- chisq.test(midwest$is_poor, midwest$inmetro)
+print(TestRes)
+```
+
+Interpretation:
+Da p < 1.9% ist (und damit insbesonder <alpha), lehnen wir unserer Nullhypothese ab, da
+die Behauptung, dass die Variablen Armut und inmetro unabhängig sind, sehr unwahrscheinlich ist.
+Damit folgt, dass die Variablen abhängig sind - also eine Korrelation zwischen ihnen besteht.
