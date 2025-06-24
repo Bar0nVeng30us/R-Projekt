@@ -1,6 +1,15 @@
-finddefectvalues <- function(values)
+finddefectvalues <- function(data, ExpectedIDCount, ExpectedObservEnd)
 {
-  return(c(1,2,3,4,5))
+    #Fehlerhaftes Gewicht abfangen
+
+    #Falschen Ernährungsplan abfangen
+
+    #Falsche ID abfangen
+
+    #Falsche Messzeit abfangen
+
+    #Falls die Zeit außerhalb des Zeitraums ist in dem wir gemessen haben, löschen wir die betroffenen Daten.
+  
 }
 
 
