@@ -1,0 +1,85 @@
+---
+title: "Gruppe 1 R-Aufgaben Blatt 8"
+author: "F.-O. Claussen, J. Fischer, M. Kohlhammer"
+date: "2025-06-26"
+output: pdf_document
+---
+
+Importieren ggplot2 und lesen die Daten ein.
+```{r Einlesen}
+library(ggplot2)
+
+accidents <- read.csv2("data/accidents.txt",
+                       header = TRUE,
+                       sep = ";",
+                       dec = ".",
+                       quote = "\"")
+
+```
+
+### a)
+```{r Aufgabe_a}
+modell_1 <- lm(DriversKilled ~ PetrolPrice, data = accidents)
+```
+Das Vorzeichen des Estimate für den PetrolPrice ist negativ, was eine negative Korrelation vermuten lässt. Das bedeutet, je höher der Benzinpreis, desto weniger Menschen sind in Unfällen getötet worden. Der niedrige p-Wert lässt auf eine hohe Signifikanz schließen.
+
+### b)
+```{r fig.cap="Abbildung 1: Verkehrstote in Abhängigkeit vom Benzinpreis", fig.align='center'}
+print(ggplot(accidents, aes(x = PetrolPrice, y = DriversKilled, color = date)) +
+        geom_point(size = 2) +
+        scale_color_viridis_c(option = "E") +
+        labs(title = "Verkehrstote in Abhängigkeit vom Benzinpreis",
+             x = "Benzinpreis einer Volumeneinheit in Pfund Sterling",
+             y = "Anzahl der in Unfällen getöteten Autoinsassen"))
+
+```
+
+### c)
+Die Aussage „ein hoher Benzinpreis führt zu weniger Verkehrstoten“ ist natürlich nicht sinnvoll/richtig. Der Grafik ist zu entnehmen, dass zwar die Anzahl der Todesfälle bei steigendem Benzinpreis fällt, jedoch auch, dass der Benzinpreis im laufe der Jahre gestiegen ist. Dies ist Inflationsbedingt und durch die Ölkrisen von 1973 und 1978 zu erwarten. Insofern handelt es sich hier um eine Korrelation mit gemeinsamer Beziehung zur Zeit / zu den Jahren. Möglich wäre viel eher ein Erfolg der Gurtpflicht über die Jahre.
+
+### d)
+
+Überprüfen zunächst grafisch auf Normalverteilung:
+```{r fig.cap="Abbildung 2: Prüfung auf Normalverteilung", fig.align='center'}
+qqnorm(accidents$DriversKilled, main = "QQ-Plot von DriversKilled")
+qqline(accidents$DriversKilled)
+```
+Den Plots ist zu entnehmen, dass die Daten der Normalverteilung folgen. 
+
+1. Vorwissen:
+Die Daten stammen aus Datensatz accidents.txt, es handelt sich somit um eineeinzelne Stichprobe.
+Die Daten sind außerdem Normalverteilt.
+
+2. Hypothesen Formulieren
+
+H0 : Die Gesetzesänderung hat keinen Einfluss auf die Anzahl Verkehrstoter
+
+H1 : Der Gesetzesänderung hat einen Einfluss auf die Anzahl Verkehrstoter
+
+3. Wahl der Teststatistik
+Wählen den einseitigen T-Test, da Daten normalverteilt sind und aus einer Stichprobe stammen.
+
+4. Festlegung des Signifikanzniveaus:
+```{r alpha}
+alpha = 0.05
+```
+
+5. Die erhobenen Daten stamen aus dem Datzensatz in accidents.txt.
+
+6. Berechnen die Teststatistik
+```{r Teststatiistik}
+t_test_ergebnis <- t.test(DriversKilled ~ law, data = accidents)
+```
+
+7. Treffen die Testentscheidung
+```{r Testentscheidung}
+#7. Testentscheidung
+entscheidung <- ifelse(t_test_ergebnis$p.value < alpha, 
+                       "H0 wird abgelehnt", 
+                       "H0 kann nicht abgelehnt werden")
+cat("Entscheidung:", entscheidung, "\n")
+```
+
+8. Interpretation
+Die Einführung der Sicherheitsgurtpflicht hat die Anzahl an Todesfällen zu 
+einem Signifikanzniveau von 5% statistisch signifikant beeinflusst.
