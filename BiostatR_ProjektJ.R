@@ -1,16 +1,47 @@
 finddefectvalues <- function(data, ExpectedIDCount, ExpectedObservEnd)
 {
-    #Fehlerhaftes Gewicht abfangen
-
-    #Falschen Ernährungsplan abfangen
-
-    #Falsche ID abfangen
-
-    #Falsche Messzeit abfangen
-
-    #Falls die Zeit außerhalb des Zeitraums ist in dem wir gemessen haben, löschen wir die betroffenen Daten.
+  
+  
+  
+  #Splite in Vektor von Dataframes. Jedes Vektorelement ist ein dataframe mit den Informationen eines Hühnchens (d.h. nach ID soriert)
+  split_data <- split(data, data$Chick)
+  
+  #Fehlerhaftes Gewicht abfangen
+  for (i in split_data) #Verboten, oder nicht verboten- das ist hier nicht die Frage
+  {
+    var_weigth <-  tapply(i$weight, i$Time, var)
+    
+    #Überprüfe, ob das Gewicht des Huhns am Tag x mehr ist, als die Varianz
+    too_heavy <- which( i$weigth > var_weigth)
+    #Setze alle zu schweren Hühnergewichte auf das Gewicht des nächsten Tages
+    i$weigth[too_heavy] <- i$weigth[too_heavy +1]
+  
+  
+  
+  #Falschen Ernährungsplan abfangen
+  #Spalte den Dataframe in alle verschiedenen Ernährungspläne auf.
+    split_diet <- split(i, i$Diet) #Split-Diet ist Liste von Dataframes
+    
+    #Erhalte den Plan, der bei den meisten Messungen eingetragen wurde
+    diet_list_lengths <- lengths(split_diet)
+    
+    #Setze dann alle Pläne gleich den Plan, den die meisten Hühner hatten
+    i$Diet <- split_diet[max(diet_list_lengths)]$Diet
+    
+    
+    
+    
+    
+  #Falsche Messzeit abfangen
+  
+  #Falls die Zeit außerhalb des Zeitraums ist in dem wir gemessen haben, löschen wir die betroffenen Daten.
+    
+  }
+  
+  #Setzen den neuen Dataframe aus den alten wieder zusammen
   
 }
+
 
 
 library(ggplot2)
