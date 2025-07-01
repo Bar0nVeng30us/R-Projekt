@@ -33,9 +33,13 @@ finddefectvalues <- function(data, ExpectedIDCount, ExpectedObservEnd)
     
     
   #Falsche Messzeit abfangen
-  
-  #Falls die Zeit außerhalb des Zeitraums ist in dem wir gemessen haben, löschen wir die betroffenen Daten.
+  correct_time_intervall <- which(0=>c$Time => 22)
+  correct_time_phase <- which(c$Time %2 == 0)
     
+  #Falls die Zeit außerhalb des Zeitraums ist in dem wir gemessen haben, löschen wir die betroffenen Daten.
+  c%time[pmin(correct_time_intervall + correct_time_intervall])
+  
+ 
   }
   
   #Setzen den neuen Dataframe aus den alten wieder zusammen
