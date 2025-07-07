@@ -15,6 +15,9 @@ finddefectvalues <- function(data, ExpectedIDCount, ExpectedObservEnd)
     too_heavy <- which( i$weigth > var_weigth)
     #Setze alle zu schweren Hühnergewichte auf das Gewicht des nächsten Tages
     i$weigth[too_heavy] <- i$weigth[too_heavy +1]
+
+    #Anders: Prüfe ob Gewicht an einem Tag deutlich kleiner als am Vortag, oder deutlich größer, als am nächsten Tag
+    #Wenn ja, setze Gewicht auf den Mittelwert der beiden Nachbartage
   
   
   
