@@ -10,53 +10,52 @@ adjust_weight <- function(v, abweichung)
   neighbour_mean <- rowMeans(cbind(day_before, day_after), na.rm = TRUE)
   
   # Ist das Gewicht kleiner als am Vortag, oder größer als am darauffolgenden Tag, dann:
- extreme_vals <- (v < day_before | v > day_after)
- 
- adjusted_weight[extreme_vals] <- neighbour_mean[extreme_vals]
+  extreme_vals <- (v < day_before | v > day_after)
+  
+  adjusted_weight[extreme_vals] <- neighbour_mean[extreme_vals]
   
   return(adjusted_weight)
 }
 
-
-
-finddefectvalues <- function(data, ExpectedIDCount, ExpectedObservEnd)
+finddefectvalues <- function(data, expected_id_count = 50, expected_observ_end = 22)
 {
-   #-------------------------------------Falsche Messzeit abfangen------------------------------------------------------------------------------
+    #-------------------------------------#Falsche Messzeit abfangen------------------------------------------------------------------------------
   
   #Überprüfe, ob die EIngetragene Zeit außerhalb des Messraums liegt, oder ungerade ist (es wurde ja nur an geraden Tagen gemessen)
-  correct_time_intervall <- (0<=weight_test$Time) & (22>=weight_test$Time)
-  correct_time_phase <- weight_test$Time %%2 == 0
+  correct_time_intervall <- (0<=data$Time) & (22>=data$Time)
+  correct_time_phase <- data$Time %%2 == 0
   
   #Falls die Zeit außerhalb des Zeitraums ist in dem wir gemessen haben, löschen wir die betroffenen Daten.
-  weight_test <- weight_test[pmin(correct_time_intervall, correct_time_phase)]
+  data <- data[correct_time_intervall & correct_time_phase,]
 
-  ------------------------------------------------------------------------------------------------------------------------------------------------------
+  #------------------------------------------------------------------------------------------------------------------------------------------------------
   
+ #-------------------------------------Falschen Ernährungsplan abfangen---------------------S-------------------------------------------------------------
   i <- 1
-  split_data <- split(weight_test, weight_test$Chick)
   
-  for (chickdata in split_data) #Verboten, oder nicht verboten- das ist hier nicht die Frage
-    { 
-      
-#-------------------------------------Falschen Ernährungsplan abfangen----------------------------------------------------------------------------------
-      #Spalte die Daten des Huhns nach den verschiedenen Ernährungsplänen auf
-      diets <- split_data[[i]]$Diet
-      #Erhalte den Ernährungsplan, der am häufigsten verwendet wurde
-      most_used_name <- names(sort(table(diets),decreasing=TRUE)[1])
-      #Setze auf den am häufigsten verwendeten Plan
-      split_data[[i]]$Diet <- most_used_name
-      i <- i+1
+  cat(nrow(data)) 
+  #str(data)
+  #cat(table(data$Chick))
+  cat("Chick" %in% names(data))
+  
+  split_data <- split(data, data$Chick)
+    
+  bereinigte_daten <- lapply(split_data, 
+                             function(chicken){haeufigste_diet <- names(sort(table(chicken$Diet), decreasing = TRUE))[1]
+                                               chicken$Diet <- haeufigste_diet
+                                               chicken <- chicken[order(chicken$Time),]
+                                               chicken$weight <- adjust_weight(chicken$weight)
+                                               return(chicken)})
+  bereinigte_daten <- do.call(rbind, bereinigte_daten)
+  return(bereinigte_daten)
 
-#-------------------------------------Falsches Gewicht abfangen---------------------------------------------------------------------------------------------
-     adjusted_weight <- adjust_weight(chickdata$weight)
-    }
 }
 
 
 
 library(ggplot2)
 # b
-data_dir <- "/home/779072/Dokumente/weight-test-2025.txt"
+data_dir <- "data/weight-test-2025.txt"
 
 weight_test <- read.table(file=data_dir,
                           header=TRUE,
@@ -76,13 +75,13 @@ n_diff_alter <- matrix(n_diff_alter)
 # e
 # Wir führen hier eine lineare Regression durch, mit dem Gewicht als Zielvariable Y und der Zeit als abhängigen Variable
 # Für die Regression verwenden wir nur die Werte, die in unserem Fehlertest keine Auffälligkeiten gezeigt haben
-defectvalues <- finddefectvalues(weight_test)
-lm(weight_test[!defectvalues])#Hier ist die Fehlermeldung
+weight_test <- finddefectvalues(weight_test)
+#lm(weight_test[!defectvalues])#Hier ist die Fehlermeldung
 
 # Die Fehlerhaften Werte setzen wir dann neu auf den Wert der Regressionsgeraden zum passenden Zeitpunkt
-weight_test[weight_test == 1060] <- lm(weight_test, n_diff_alter)
+#weight_test[weight_test == 1060] <- lm(weight_test, n_diff_alter)
 
-weight_test[weight_test == "Plan_5"] <- "Plan_4"
+#weight_test[weight_test == "Plan_5"] <- "Plan_4"
 
 #f
 durchschnittsgewicht <- tapply(weight_test$weight, weight_test$Time, mean)
