@@ -1,6 +1,27 @@
+adjust_weight <- function(v, abweichung)
+{
+  adjusted_weight <- v
+  
+  # Linke und rechte Nachbarn
+  day_before  <- c(0, v[-length(v)])
+  day_after <- c(v[-1], 100000)
+  
+  #Berechne der Mittelwert der umliegenden Tage
+  neighbour_mean <- rowMeans(cbind(day_before, day_after), na.rm = TRUE)
+  
+  # Ist das Gewicht kleiner als am Vortag, oder größer als am darauffolgenden Tag, dann:
+ extreme_vals <- (v < day_before | v > day_after)
+ 
+ adjusted_weight[extreme_vals] <- neighbour_mean[extreme_vals]
+  
+  return(adjusted_weight)
+}
+
+
+
 finddefectvalues <- function(data, ExpectedIDCount, ExpectedObservEnd)
 {
-    -------------------------------------#Falsche Messzeit abfangen------------------------------------------------------------------------------
+   #-------------------------------------Falsche Messzeit abfangen------------------------------------------------------------------------------
   
   #Überprüfe, ob die EIngetragene Zeit außerhalb des Messraums liegt, oder ungerade ist (es wurde ja nur an geraden Tagen gemessen)
   correct_time_intervall <- (0<=weight_test$Time) & (22>=weight_test$Time)
@@ -11,13 +32,13 @@ finddefectvalues <- function(data, ExpectedIDCount, ExpectedObservEnd)
 
   ------------------------------------------------------------------------------------------------------------------------------------------------------
   
-#-------------------------------------Falschen Ernährungsplan abfangen----------------------------------------------------------------------------------
   i <- 1
   split_data <- split(weight_test, weight_test$Chick)
   
   for (chickdata in split_data) #Verboten, oder nicht verboten- das ist hier nicht die Frage
     { 
       
+#-------------------------------------Falschen Ernährungsplan abfangen----------------------------------------------------------------------------------
       #Spalte die Daten des Huhns nach den verschiedenen Ernährungsplänen auf
       diets <- split_data[[i]]$Diet
       #Erhalte den Ernährungsplan, der am häufigsten verwendet wurde
@@ -25,9 +46,10 @@ finddefectvalues <- function(data, ExpectedIDCount, ExpectedObservEnd)
       #Setze auf den am häufigsten verwendeten Plan
       split_data[[i]]$Diet <- most_used_name
       i <- i+1
-      
+
+#-------------------------------------Falsches Gewicht abfangen---------------------------------------------------------------------------------------------
+     adjusted_weight <- adjust_weight(chickdata$weight)
     }
----------------------------------------------------------------------------------------------------------------------------------------------------------
 }
 
 
