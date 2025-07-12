@@ -1,0 +1,134 @@
+---
+title: "R-Testat"
+author: "F.-O. Claussen, J. Fischer, M. Kohlhammer"
+date: "2025-07-08"
+output: pdf_document
+---
+
+```{r ggplot2}
+library(ggplot2)
+```
+
+## Aufgabe 1
+
+### 1.b
+Lesen die Daten ein.
+```{r getData}
+data_dir <- "data/weight-test-2025.txt"
+weight_test <- read.table(file=data_dir,
+                         header=TRUE,
+                         sep=" ",
+                         as.is=TRUE)
+```
+
+### 1.c
+```{r countChick}
+n_row <- nrow(weight_test)
+n_hühnchen <- length(unique(weight_test$Chick))
+
+cat("Der Datensatz enthält:\n", n_hühnchen, "Hüchnchen\n",
+            n_row, "Gesamtbeobachtungen\n\n ")
+```
+
+
+### 1.d
+```{r countAge}
+n_diff_alter <- table(weight_test$Time)
+diff_alter <- names(n_diff_alter)
+n_diff_alter <- matrix(n_diff_alter)
+
+cat(paste(diff_alter, "Tage nach dem Schlüpfen wurden",
+          n_diff_alter, "Messungen gemacht.\n"))
+```
+
+### 1.e
+```{r korrektur}
+weight_test[weight_test == 1060] <- 106
+weight_test[weight_test == "Plan_5"] <- "Plan_4"
+```
+
+### 1.f
+```{r mean_weight}
+durchschnittsgewicht <- tapply(weight_test$weight, 
+                              weight_test$Time, mean)
+
+cat(paste("\nDas Durchschnittsgewicht nach", diff_alter,
+          "Tagen ist:", round(durchschnittsgewicht,4), "g."))
+```
+
+### 1.g
+```{r aufg1plot}
+ggplot(
+  data=weight_test,
+  mapping=aes(x=Time,
+              y=weight,
+              color=factor(Diet)))+
+    facet_wrap(~ Diet, nrow = 2) +
+    geom_point()
+
+```
+
+### 1.h
+```{r}
+qqnorm(scale(weight_test$weight)) #To scale() or not to scale()? That is the Question.
+qqline(scale(weight_test$weight))
+```
+Den Ergebnissen aus dem Q-Q-Plot ist zu entnehmen, dass die Gewichtsdaten nicht normalverteilt sind.
+
+## Aufgabe 2 
+
+### 2.a)
+```{r linModell}
+df_Diets <- split(weight_test, weight_test$Diet)
+Diets_Modells <- lapply(df_Diets, function(df) {lm(weight ~ Time, data = df)})
+#Modell_huhn <- lm(weight ~ Time + Diet, data = weight_test)
+print(summary(Diets_Modells))
+```
+
+### 2.b)
+
+### 2.c)
+```{r linReg}
+ggplot(weight_test, aes(x = Time, y = weight, color = factor(Diet))) +
+        geom_point() +
+        geom_abline(intercept = summary(Modell_huhn)$coefficients["(Intercept)", ][1],
+                    slope = summary(Modell_huhn)$coefficients["Time", ][1]) +
+        labs(title = "Lineares Modell: Gewicht ~ Zeit + Ernährungsplan",
+             x = "Alter (Tage)",
+             y = "Gewicht (g)",
+             color = "Ernährungsplan") +
+        theme_minimal()
+```
+### 2.d)
+```{r diagGraf}
+plot(Modell_huhn)
+```
+
+
+## Aufgabe 3
+
+### 3.a)
+```{r}
+huhn_22 <- subset(weight_test, Time == 22)
+print(head(huhn_22),6)
+```
+
+### 3.b) 
+
+```{r boxPlot}
+ggplot(huhn_22, aes(x = factor(Diet), y = weight, fill = factor(Diet))) +
+        geom_boxplot() +
+        labs(title = "Vergleich der Gewichte bei 22 Tage alten Hähnchen",
+             x = "Ernährungsplan",
+             y = "Gewicht (g)",
+             fill = "Ernährungsplan") +
+        theme_minimal()
+```
+
+### 3.c
+Überprüfen zunächst grafisch die Normalverteilung für den neuen Datensatz.
+```{r qqPlot3}
+qqnorm(scale(huhn_22$weight)) #To scale() or not to scale()? That is the Question.
+qqline(scale(huhn_22$weight))
+```
+Die Daten sind normalverteilt.
