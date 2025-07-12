@@ -1,52 +1,33 @@
 finddefectvalues <- function(data, ExpectedIDCount, ExpectedObservEnd)
 {
+    -------------------------------------#Falsche Messzeit abfangen------------------------------------------------------------------------------
   
+  #Überprüfe, ob die EIngetragene Zeit außerhalb des Messraums liegt, oder ungerade ist (es wurde ja nur an geraden Tagen gemessen)
+  correct_time_intervall <- (0<=weight_test$Time) & (22>=weight_test$Time)
+  correct_time_phase <- weight_test$Time %%2 == 0
   
-  
-  #Splite in Vektor von Dataframes. Jedes Vektorelement ist ein dataframe mit den Informationen eines Hühnchens (d.h. nach ID soriert)
-  split_data <- split(data, data$Chick)
-  
-  #Fehlerhaftes Gewicht abfangen
-  for (i in split_data) #Verboten, oder nicht verboten- das ist hier nicht die Frage
-  {
-    var_weigth <-  tapply(i$weight, i$Time, var)
-    
-    #Überprüfe, ob das Gewicht des Huhns am Tag x mehr ist, als die Varianz
-    too_heavy <- which( i$weigth > var_weigth)
-    #Setze alle zu schweren Hühnergewichte auf das Gewicht des nächsten Tages
-    i$weigth[too_heavy] <- i$weigth[too_heavy +1]
-
-    #Anders: Prüfe ob Gewicht an einem Tag deutlich kleiner als am Vortag, oder deutlich größer, als am nächsten Tag
-    #Wenn ja, setze Gewicht auf den Mittelwert der beiden Nachbartage
-  
-  
-  
-  #Falschen Ernährungsplan abfangen
-  #Spalte den Dataframe in alle verschiedenen Ernährungspläne auf.
-    split_diet <- split(i, i$Diet) #Split-Diet ist Liste von Dataframes
-    
-    #Erhalte den Plan, der bei den meisten Messungen eingetragen wurde
-    diet_list_lengths <- lengths(split_diet)
-    
-    #Setze dann alle Pläne gleich den Plan, den die meisten Hühner hatten
-    i$Diet <- split_diet[max(diet_list_lengths)]$Diet
-    
-    
-    
-    
-    
-  #Falsche Messzeit abfangen
-  correct_time_intervall <- which(0=>c$Time => 22)
-  correct_time_phase <- which(c$Time %2 == 0)
-    
   #Falls die Zeit außerhalb des Zeitraums ist in dem wir gemessen haben, löschen wir die betroffenen Daten.
-  c%time[pmin(correct_time_intervall + correct_time_intervall])
+  weight_test <- weight_test[pmin(correct_time_intervall, correct_time_phase)]
+
+  ------------------------------------------------------------------------------------------------------------------------------------------------------
   
- 
-  }
+#-------------------------------------Falschen Ernährungsplan abfangen----------------------------------------------------------------------------------
+  i <- 1
+  split_data <- split(weight_test, weight_test$Chick)
   
-  #Setzen den neuen Dataframe aus den alten wieder zusammen
-  
+  for (chickdata in split_data) #Verboten, oder nicht verboten- das ist hier nicht die Frage
+    { 
+      
+      #Spalte die Daten des Huhns nach den verschiedenen Ernährungsplänen auf
+      diets <- split_data[[i]]$Diet
+      #Erhalte den Ernährungsplan, der am häufigsten verwendet wurde
+      most_used_name <- names(sort(table(diets),decreasing=TRUE)[1])
+      #Setze auf den am häufigsten verwendeten Plan
+      split_data[[i]]$Diet <- most_used_name
+      i <- i+1
+      
+    }
+---------------------------------------------------------------------------------------------------------------------------------------------------------
 }
 
 
