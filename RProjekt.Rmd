@@ -15,18 +15,18 @@ library(ggplot2)
 Lesen die Daten ein.
 ```{r getData}
 data_dir <- "data/weight-test-2025.txt"
-weight_test <- read.table(file = data_dir,
-                         header = TRUE,
-                         sep = " ",
-                         as.is = TRUE)
+weight_test <- read.table(file=data_dir,
+                         header=TRUE,
+                         sep=" ",
+                         as.is=TRUE)
 ```
 
 ### 1.c
 ```{r countChick}
 n_row <- nrow(weight_test)
-n_huehnchen <- length(unique(weight_test$Chick))
+n_hühnchen <- length(unique(weight_test$Chick))
 
-cat("Der Datensatz enthält:\n", n_huehnchen, "Hüchnchen\n",
+cat("Der Datensatz enthält:\n", n_hühnchen, "Hüchnchen\n",
             n_row, "Gesamtbeobachtungen\n\n ")
 ```
 
@@ -52,17 +52,17 @@ weight_test[weight_test == "Plan_5"] <- "Plan_4"
 durchschnittsgewicht <- tapply(weight_test$weight, 
                               weight_test$Time, mean)
 
-cat(paste("\nDas Durchschnittsgewicht nach", names(durchschnittsgewicht),
+cat(paste("\nDas Durchschnittsgewicht nach", diff_alter,
           "Tagen ist:", round(durchschnittsgewicht,4), "g."))
 ```
 
 ### 1.g
 ```{r aufg1plot}
 ggplot(
-  data = weight_test,
-  mapping = aes(x = Time,
-                y = weight,
-                color = factor(Diet))) +
+  data=weight_test,
+  mapping=aes(x=Time,
+              y=weight,
+              color=factor(Diet)))+
     facet_wrap(~ Diet, nrow = 2) +
     geom_point()
 
@@ -81,20 +81,8 @@ Den Ergebnissen aus dem Q-Q-Plot ist zu entnehmen, dass die Gewichtsdaten nicht 
 ```{r linModell}
 df_Diets <- split(weight_test, weight_test$Diet)
 Diets_Modells <- lapply(df_Diets, function(df) {lm(weight ~ Time, data = df)})
-lapply(Diets_Modells, function(lm) {summary(lm)})
-```
-```{r }
-# Vorbereiten der Regressionsgraden
-linien_list <- Map(function(modell, name) 
-                {coefs <- coef(modell)
-                 data.frame(intercept = coefs["(Intercept)"],
-                            slope = coefs["Time"],
-                            Diet = name)},
-                 Diets_Modells,
-                 names(Diets_Modells))
-
-# Umwandlung in df
-linien_df <- do.call(rbind, linien_list)
+#Modell_huhn <- lm(weight ~ Time + Diet, data = weight_test)
+print(lapply(Diets_Modells, function(lm) {summary(lm)}))
 ```
 
 ### 2.b)
@@ -103,23 +91,17 @@ linien_df <- do.call(rbind, linien_list)
 ```{r linReg}
 ggplot(weight_test, aes(x = Time, y = weight, color = factor(Diet))) +
         geom_point() +
-        geom_abline(
-          data = linien_df,
-          aes(intercept = intercept, slope = slope),
-          color = "black") +
-        facet_wrap(~ Diet) +
-        labs(title = "Lineares Modell: Gewicht ~ Zeit je Ernährungsplan",
+        geom_abline(intercept = summary(Modell_huhn)$coefficients["(Intercept)", ][1],
+                    slope = summary(Modell_huhn)$coefficients["Time", ][1]) +
+        labs(title = "Lineares Modell: Gewicht ~ Zeit + Ernährungsplan",
              x = "Alter (Tage)",
              y = "Gewicht (g)",
              color = "Ernährungsplan") +
         theme_minimal()
 ```
-
-
-
 ### 2.d)
 ```{r diagGraf}
-lapply(Diets_Modells,function(lm) {plot(lm)})
+plot(Modell_huhn)
 ```
 
 
