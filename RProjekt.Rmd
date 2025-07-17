@@ -9,29 +9,104 @@ output: pdf_document
 library(ggplot2)
 ```
 
+```{r adjust_weight}
+adjust_weight <- function(v, tolerated_deviation = 30)
+{
+  #Funktion sorgt dafür, dass die Gewicht mit Toleranzfaktor "tolerated_deviation" monoton steigend sind.
+  
+  #ACHTUNG: Diese Funktion kann nur Außreißer korrigieren, die eine Umgebung von nicht-Außreißern haben
+  #Bei zwei oder mehr extremen Werte hintereinander wird davon ausgegangen, dass dies kein Fehler mehr ist, den man korrigieren sollte,
+  #sondern, dass die Daten manuell auf Tauglichkeit untersucht werden sollten.
+  
+  adjusted_weight <- v
+  
+  #Erzeuge Vektoren, die zum Vergleich mit Vortag bzw. Nachtag dienen
+  day_before  <- c(0, v[-length(v)])
+  day_after <- c(v[-1], 100000)
+  
+  #Berechne der Mittelwert der beiden umliegenden Tage
+  neighbour_mean <- rowMeans(cbind(day_before, day_after), na.rm = TRUE)
+  
+  # Ist das Gewicht kleiner als am Vortag, oder größer als am darauffolgenden Tag, dann wird das Gewicht angepasst.
+  extreme_vals <- ((v + tolerated_deviation) < day_before | v > (day_after + tolerated_deviation))
+  cat("\n",typeof(extreme_vals), "\n")
+
+  extreme_vals[c(2:length(extreme_vals))] <- vapply(c(2:length(extreme_vals)), FUN = function(i) {
+    if (extreme_vals[i] == TRUE && extreme_vals[i-1] == TRUE) {
+      return(FALSE)}
+    else {return(extreme_vals[i])}},
+    FUN.VALUE = logical(1))
+  
+  adjusted_weight[extreme_vals] <- neighbour_mean[extreme_vals]
+  print(adjusted_weight)
+  
+  #Korrigierten Werte werden zurückgegeben
+  return(adjusted_weight)
+}
+```
+
+```{r find_defect_values}
+find_defect_values <- function(data, expected_id_count = 50, expected_observ_end = 22, abweichung = 25)
+{
+    #-------------------------------------#Falsche Messzeit abfangen------------------------------------------------------------------------------
+  
+  #Überprüfe, ob die EIngetragene Zeit außerhalb des Messraums liegt, oder ungerade ist (es wurde ja nur an geraden Tagen gemessen)
+  correct_time_intervall <- (0 <= data$Time) & (expected_observ_end >= data$Time)
+  correct_time_phase <- data$Time %% 2 == 0
+  
+  #Falls die Zeit außerhalb des Zeitraums ist in dem wir gemessen haben, löschen wir die betroffenen Daten.
+  data <- data[correct_time_intervall & correct_time_phase,]
+
+  #------------------------------------------------------------------------------------------------------------------------------------------------------
+  
+ #-------------------------------------Falschen Ernährungsplan abfangen----------------------------------------------------------------------------------
+  i <- 1
+  
+  cat(nrow(data)) 
+  #str(data)
+  #cat(table(data$Chick))
+  cat("Chick" %in% names(data))
+  
+  split_data <- split(data, data$Chick)
+    
+  bereinigte_daten <- lapply(split_data, 
+                             function(chicken){haeufigste_diet <- names(sort(table(chicken$Diet), decreasing = TRUE))[1]
+                                               chicken$Diet <- haeufigste_diet
+                                               chicken <- chicken[order(chicken$Time),]
+                                               chicken$weight <- adjust_weight(chicken$weight, tolerated_deviation = abweichung)
+                                               return(chicken)})
+  bereinigte_daten <- do.call(rbind, bereinigte_daten)
+  return(bereinigte_daten)
+
+}
+```
+
 ## Aufgabe 1
 
 ### 1.b
+
 Lesen die Daten ein.
+
 ```{r getData}
 data_dir <- "data/weight-test-2025.txt"
-weight_test <- read.table(file=data_dir,
-                         header=TRUE,
-                         sep=" ",
-                         as.is=TRUE)
+weight_test <- read.table(file = data_dir,
+                         header = TRUE,
+                         sep = " ",
+                         as.is = TRUE)
 ```
 
 ### 1.c
+
 ```{r countChick}
 n_row <- nrow(weight_test)
-n_hühnchen <- length(unique(weight_test$Chick))
+n_huehnchen <- length(unique(weight_test$Chick))
 
-cat("Der Datensatz enthält:\n", n_hühnchen, "Hüchnchen\n",
+cat("Der Datensatz enthält:\n", n_huehnchen, "Hüchnchen\n",
             n_row, "Gesamtbeobachtungen\n\n ")
 ```
 
-
 ### 1.d
+
 ```{r countAge}
 n_diff_alter <- table(weight_test$Time)
 diff_alter <- names(n_diff_alter)
@@ -42,78 +117,119 @@ cat(paste(diff_alter, "Tage nach dem Schlüpfen wurden",
 ```
 
 ### 1.e
+
 ```{r korrektur}
-weight_test[weight_test == 1060] <- 106
-weight_test[weight_test == "Plan_5"] <- "Plan_4"
+#adjust_weight(weight_test[weight_test$Chick == 41,])
+#weight_test[weight_test == 1060] <- 106
+#weight_test[weight_test == "Plan_5"] <- "Plan_4"
+weight_test <- find_defect_values(data = weight_test)
 ```
 
 ### 1.f
+
 ```{r mean_weight}
 durchschnittsgewicht <- tapply(weight_test$weight, 
                               weight_test$Time, mean)
 
-cat(paste("\nDas Durchschnittsgewicht nach", diff_alter,
+cat(paste("\nDas Durchschnittsgewicht nach", names(durchschnittsgewicht),
           "Tagen ist:", round(durchschnittsgewicht,4), "g."))
 ```
 
 ### 1.g
+
 ```{r aufg1plot}
 ggplot(
-  data=weight_test,
-  mapping=aes(x=Time,
-              y=weight,
-              color=factor(Diet)))+
+  data = weight_test,
+  mapping = aes(x = Time,
+                y = weight,
+                color = factor(Diet))) +
     facet_wrap(~ Diet, nrow = 2) +
     geom_point()
 
 ```
 
 ### 1.h
+
 ```{r}
 qqnorm(scale(weight_test$weight)) #To scale() or not to scale()? That is the Question.
 qqline(scale(weight_test$weight))
 ```
+
 Den Ergebnissen aus dem Q-Q-Plot ist zu entnehmen, dass die Gewichtsdaten nicht normalverteilt sind.
 
-## Aufgabe 2 
+## Aufgabe 2
 
 ### 2.a)
+
 ```{r linModell}
 df_Diets <- split(weight_test, weight_test$Diet)
+Modell_huhn <- lm(weight ~ Time + Diet, data = weight_test)
 Diets_Modells <- lapply(df_Diets, function(df) {lm(weight ~ Time, data = df)})
-#Modell_huhn <- lm(weight ~ Time + Diet, data = weight_test)
-print(lapply(Diets_Modells, function(lm) {summary(lm)}))
+lapply(Diets_Modells, function(lm) {summary(lm)})
+```
+
+```{r }
+# Vorbereiten der Regressionsgraden
+linien_list <- Map(function(modell, name) 
+                {coefs <- coef(modell)
+                 data.frame(intercept = coefs["(Intercept)"],
+                            slope = coefs["Time"],
+                            Diet = name)},
+                 Diets_Modells,
+                 names(Diets_Modells))
+
+# Umwandlung in df
+linien_df <- do.call(rbind, linien_list)
 ```
 
 ### 2.b)
 
 ### 2.c)
-```{r linReg}
+```{r linReg1}
 ggplot(weight_test, aes(x = Time, y = weight, color = factor(Diet))) +
         geom_point() +
-        geom_abline(intercept = summary(Modell_huhn)$coefficients["(Intercept)", ][1],
-                    slope = summary(Modell_huhn)$coefficients["Time", ][1]) +
-        labs(title = "Lineares Modell: Gewicht ~ Zeit + Ernährungsplan",
+        geom_smooth(method = "lm", se = TRUE) +
+        facet_wrap(~ Diet) +
+        labs(title = "Lineares Modell: Gewicht ~ Zeit je Ernährungsplan",
              x = "Alter (Tage)",
              y = "Gewicht (g)",
              color = "Ernährungsplan") +
         theme_minimal()
 ```
-### 2.d)
-```{r diagGraf}
-plot(Modell_huhn)
+
+
+```{r linReg}
+ggplot(weight_test, aes(x = Time, y = weight, color = factor(Diet))) +
+        geom_point() +
+        geom_abline(
+          data = linien_df,
+          aes(intercept = intercept, slope = slope),
+          color = "black") +
+        facet_wrap(~ Diet) +
+        labs(title = "Lineares Modell: Gewicht ~ Zeit je Ernährungsplan",
+             x = "Alter (Tage)",
+             y = "Gewicht (g)",
+             color = "Ernährungsplan") +
+        theme_minimal()
 ```
 
+### 2.d)
+
+```{r diagGraf}
+#lapply(Diets_Modells,function(lm) {plot(lm)})
+invisible(lapply(c(1:4), function(i) {plot(Modell_huhn,i)}))
+```
 
 ## Aufgabe 3
 
 ### 3.a)
+
 ```{r}
 huhn_22 <- subset(weight_test, Time == 22)
 print(head(huhn_22),6)
 ```
 
-### 3.b) 
+### 3.b)
 
 ```{r boxPlot}
 ggplot(huhn_22, aes(x = factor(Diet), y = weight, fill = factor(Diet))) +
@@ -126,9 +242,57 @@ ggplot(huhn_22, aes(x = factor(Diet), y = weight, fill = factor(Diet))) +
 ```
 
 ### 3.c
+
 Überprüfen zunächst grafisch die Normalverteilung für den neuen Datensatz.
+
 ```{r qqPlot3}
 qqnorm(scale(huhn_22$weight)) #To scale() or not to scale()? That is the Question.
 qqline(scale(huhn_22$weight))
 ```
+
 Die Daten sind normalverteilt.
+
+#### Vorwissen
+Am Tag 22 wurden insgesamt 45 Messungen in 4 Stichproben, die Ernährungsgruppen, erhoben.
+Wie zuvor gezeigt wurde, sind die Daten für den 22. Tag normalverteilt. Es gibt keinen Grund zur Annahme, dass die Stichproben nicht unabhängig sind, da die Ernährungspläne der Gruppen nichts miteinander zu tun haben. Zu weiteren Faktoren wie die Haltungsart, Jahreszeit etc. ist nichts bekannt.
+
+#### Hypothesen
+Nullhypothese H0: Es gibt keinen Unterschied im Gewicht zwischen den Ernährungsgruppen.
+Alternativhypothese H1: Es gibt mindestens eine Ernährungsgruppe, die sich signifikant unterscheidet.
+
+#### Wahl der Teststatistik
+Wir führen eine ANOVA durch, da wir das Körpergewicht von Hühnern unter vier verschiedenen Stichproben vergleichen möchten. 
+
+#### Wahl des Signifikanzniveaus
+Wählen ein Signifikanzniveau von 0.05.
+```{r alpha}
+alpha <- 0.05
+```
+
+#### Datenerhebung
+Nutzen die Daten aus huhn_22.
+
+#### Berechnung der Teststatistik
+```{r anova}
+anova_huhn_22 <- aov(weight ~ Diet, data = huhn_22)
+anova_summary <- summary(anova_huhn_22)
+print(anova_summary)
+```
+
+#### Testentscheidung
+```{r testEntscheidung}
+p_value <- anova_summary[[1]][["Pr(>F)"]][1]
+cat("Der p-Wert ist:", p_value, "\n")
+
+entscheidung <- ifelse(p_value < alpha,
+                       "H0 wird abgelehnt",
+                       "H0 kann nicht abgelehnt werden")
+cat("Entscheidung:", entscheidung, "\n")
+```
+
+#### Interpretation
+```{r interpretation}
+cat("Interpretation: ", ifelse(p_value < alpha,
+"Es gibt signifikante Unterschiede zwischen den Ernährungsplänen.",
+"Es gibt  keinen signifikanten Unterschied zwischen den Ernährungsplänen."), "\n")
+```
