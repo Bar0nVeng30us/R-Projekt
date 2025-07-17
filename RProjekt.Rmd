@@ -10,7 +10,7 @@ library(ggplot2)
 ```
 
 ## Aufgabe 1
-
+Wir laden die heruntergeladenen Daten "weight-test-2025.txt" in den Dataframe "weight_test"
 ### 1.b
 Lesen die Daten ein.
 ```{r getData}
@@ -22,6 +22,7 @@ weight_test <- read.table(file=data_dir,
 ```
 
 ### 1.c
+Nun geben wir aus, wie viele Gesamtbeobachtungen der Datensatz enthält und wie viele Hähnchen beobachtet wurden.
 ```{r countChick}
 n_row <- nrow(weight_test)
 n_hühnchen <- length(unique(weight_test$Chick))
@@ -32,6 +33,7 @@ cat("Der Datensatz enthält:\n", n_hühnchen, "Hüchnchen\n",
 
 
 ### 1.d
+Hier wird ausgegeben, wie viele Beobachtungen es pro Altersstude gab.
 ```{r countAge}
 n_diff_alter <- table(weight_test$Time)
 diff_alter <- names(n_diff_alter)
@@ -42,11 +44,17 @@ cat(paste(diff_alter, "Tage nach dem Schlüpfen wurden",
 ```
 
 ### 1.e
+Die Werte werden in eine eigens dafür geschriebene Funktion eingelesen, die die Werte überprüft, unpassende Werte aussortiert und ggf. Werte anpasst. Dafür verfahren wir nach folgendem Regeln:
+1. Alle Messungen, die außerhalb des Zeitraums liegen, oder an falschen Tagen gemacht wurden, werden aussortiert.
+2. Sind für ein Hähnchen mehrere Ernährungspläne verzeichnet, so gehen wir davon aus, dass dies Fehler bei der Eintragung sind und setzen alle Ernährungspläne auf den am häufigsten verwendeten Plan. Wir tätigen hier die Annahme, dass der Großteil der Pläne richtig eingetragen wurde.
+3. Bei der Gewichtszuname von Hähnchen erwarten wir innerhalb der ersten 22 Tage eine fast-lineare Zunahme. Das heißt, dass im Erwartungswert die Hähnchen an Tag t+2 schwerer sind, als an Tag t. Ist dies an Tag t nicht der Fall, so setzen wir das Gewicht von Tag t (g(t)) auf den Durchschnitt der Nachbartage ((g(t-1) + g(t+1))/2).Für einzelne Außreißer funktioniert dieses System gut, sind allerdings mehrere Tage in Folge falsch, so bricht das System zusammen. Da dies aber relativ unwahrscheinlich ist, genügt uns die einfacherere Variante wie sie hier implementiert wurde. Da das Gewicht eines Hühnchens leicht fluktuieren kann, erlauben wir eine Toleranz, sodass nicht alle Werte, die nicht monoton Steigend sind, sofort korrigiert werden.
 ```{r korrektur}
 weight_test[weight_test == 1060] <- 106
 weight_test[weight_test == "Plan_5"] <- "Plan_4"
 ```
+ACHTUNG: Ab hier wird nicht mehr mit den originalen Daten gearbeitet, sondern mit Angepassten. Dies wird im folgenden nicht mehr besonders hervorgehoben.
 
+Wir berechnen nun für jede Altersgruppe das durchschnittliche Gewicht.
 ### 1.f
 ```{r mean_weight}
 durchschnittsgewicht <- tapply(weight_test$weight, 
@@ -55,7 +63,7 @@ durchschnittsgewicht <- tapply(weight_test$weight,
 cat(paste("\nDas Durchschnittsgewicht nach", diff_alter,
           "Tagen ist:", round(durchschnittsgewicht,4), "g."))
 ```
-
+Es folgt eine grafische Darstellung der verschiedenen Ernährungspläne. 
 ### 1.g
 ```{r aufg1plot}
 ggplot(
@@ -67,27 +75,34 @@ ggplot(
     geom_point()
 
 ```
+Wir sehen in den Abbildungen deutlich, dass das Gewicht (wie oben auch erwartet) monoton wachsend ist. Dabei findet in jedem Plan eine Streuung statt, die stärker wird, je älter die Hähnchen werden. Dies ergibt Sinn, da die meisten Hähnchen bei ähnlichem Gewicht geboren werden, sich dann aber (z.B. aufgrund ihrer Genetik) trotz des selben Plan unterschiedlich schnell entwickeln und daher unterschiedliche Gewichte annehmen. Man sieht auch, dass die Hähnchen in den Plänen 2 und 3 schneller mehr Gewicht zunehmen, als die Hähnchen in den Plänen 1 und 4. In den Plänen 1 und 2 ist die Streuung etwas größer. als in den anderen beiden Plänen.
 
 ### 1.h
 ```{r}
 qqnorm(scale(weight_test$weight)) #To scale() or not to scale()? That is the Question.
 qqline(scale(weight_test$weight))
 ```
-Den Ergebnissen aus dem Q-Q-Plot ist zu entnehmen, dass die Gewichtsdaten nicht normalverteilt sind.
+Den Ergebnissen aus dem Q-Q-Plot ist zu entnehmen, dass die Gewichtsdaten nicht normalverteilt sind. Denn wir sehen, dass die Punkte nicht nah genug an der Geraden liegen (insbesondere in Richtung der Ränder). Es sieht außerdem so aus, als würden eher mehr als 60% der Punkte rechts von der 0 liegen - bei einer Normalverteilung sollten es aber ca. 50% sein.
 
 ## Aufgabe 2 
 
-### 2.a)
+Um die Entwicklung der Hähnchen unter den Ernährungsplänen besser zu analysieren, wird nun ein lineares Modell erstellt. Dieses hat das Gewicht der Hähnchen als Zielvariable, Abhängige Variablen sind das Alter und der angewendete Ernährungsplan.
+
+
+### 2.a) 
 ```{r linModell}
 df_Diets <- split(weight_test, weight_test$Diet)
 Diets_Modells <- lapply(df_Diets, function(df) {lm(weight ~ Time, data = df)})
-#Modell_huhn <- lm(weight ~ Time + Diet, data = weight_test)
-print(summary(Diets_Modells))
+Modell_huhn <- lm(weight ~ Time + Diet, data = weight_test)
+print(lapply(Diets_Modells, function(lm) {summary(lm)}))
 ```
+
 
 ### 2.b)
 
+
 ### 2.c)
+Um das Modell besser zu verstehen, erstellen wir nun einen Plot davon
 ```{r linReg}
 ggplot(weight_test, aes(x = Time, y = weight, color = factor(Diet))) +
         geom_point() +
@@ -100,21 +115,34 @@ ggplot(weight_test, aes(x = Time, y = weight, color = factor(Diet))) +
         theme_minimal()
 ```
 ### 2.d)
+Wir haben folgende Plots erstellt:
+Tukey-Anscombe, Normal QQ, Scale-Location, Leverage.
+<u>Tukey-Anscombe:</u> Beim Tukey-Anscombe-Plot sind die Daten nicht in einem gleichmäßigen Schlauch um die 0 verteilt, sondern die absolite Residuengrößte steigt sehr stark an, wenn die fitted Value steigen und die Ausschläge der Residuen sind in beide Richtungen sehr groß. Daher kommen wir zu dem Schluss, dass unser Modell nicht sehr gut an die Daten angepasst ist und der Erwartungswert der Residuen ungleich 0 ist.
+
+<u>Normal QQ:</u> Beim QQ-Plot sehen wir, dass sich die Daten von -1 bis 1 perfekt an die Gerade anschmiegen - zu den Rändern hin jedoch deutlich abfallen. Dies spricht gegen eine Normalverteilung der Daten. Dass jedoch die Daten zu 50% links und rechts der 0 liegen spricht eher für eine Normalverteilung. Letztlich sind wir mit unserer Entscheidung konservativ und sagen, dass es zwar fast normalverteilt ist, die Ränder aber doch zu weit entfernt von der Geraden sind. Daher spricht der QQ-Plot gegen die Normalverteilungsannahme.
+
+<u>Scale location:</u> Dieser Plot untersucht die Homoskedazitätsannahme: Dass die Punkte in einem Schlauch liegen spricht grundsätzlich dafür, dass die Homoskedazitätsannahme gilt. Dagegen spricht, dass dieser Schlauch nicht gleichmäßig ist,sondern eher wie ein Kegel aufgeht, wenn fitted values steigen. Wir entscheiden uns hier dennoch für die Homoskedazitätsannahme, da der Schlauch zwar aufgeht, die Daten aber immer noch einer klaren Struktur folgen und nicht wie in Abbildung 1.6 des Skriptes eine große Wolke bilden.
+
+<u>Leverage: </u> Beim Leverage-Plot ist wichtig zu beachten, dass die Leverage-Achse maximal bis 0.14 geht. Es sieht zwar so aus, als hätten viele Residuen einen hohen leverage-Wert, da  es dirt eine größere Gruppe mit starken AUsschlägen gibt, allerdings ist ein Leverage-Wert von 0.14 noch relativ klein, sodass die Residuen keinen großen Hebelwert haben.
+
 ```{r diagGraf}
 plot(Modell_huhn)
 ```
-
+Unsere Schlussfolgerung dieser Aufgabe ist, dass von den Kriterien L(1)-L(5) die Kriterien L(1) und L(5) verletzt wurden. Es gibt zwar einige Außreißenden Werte, diese haben aber keine große Hebelwirkung. Es gilt weiterhin die Homoskedazität der Fehler.
 
 ## Aufgabe 3
 
 ### 3.a)
+Wir betrachten nun einen Ausschnitt der Daten. In diesem sind nur Beobachtungen enthalten, in denen die Hähnchen ein Alter von 22 Tagen hatten. Im folgenden werden die ersten 6 Zeilen dieses Ausschnittes ausgegeben:
 ```{r}
 huhn_22 <- subset(weight_test, Time == 22)
 print(head(huhn_22),6)
 ```
 
 ### 3.b) 
+Wir haben als Grafik einen Box-Whisker-Plot gewählt. Denn hier kann man durch die Quantile sehr deutlich sehen, in welchem Gewichtsbereich sich die meisten Hähnchen in jeder Ernährungsgruppe bewegen. Dadurch erhält man sofort einen guten Überblick darüber, wie verschieden die Auswirkungen der Ernährungspläne sind. Zusätzlich sieht man hier noch gut, wie groß die Streuung des Gewichts ist - also wie viele Hähnhchen ihre Ernährung gut bzw. schlecht aufgenommen haben. Unsere Interpretation des Plots ist wie folgt:
 
+Man sieht, dass die Hähnchen von Plan 3 mehr wiegen als die anderen Hähnchen und, dass die Hähnchen von Plan 1 tendenziell am leichtesten sind. Plan 2 besitzt die größten Gewichtsvielfalt, da sowohl die Whiskers am längsten sind, als auch der Bereich zwischen dem 75- und 25%-Quantil am größten ist. Dem entgegen hat Plan 4 kaum Ausschläge - hier liegen die Gewichte der Hähnchen also nah beeinander. Eine mögliche Interpretation des Plots wäre also: Hähnchen, die mit Plan 3 ernährt wurden, sind am schwerste, Hähnchen, die mit Plan 1 ernährt wurden, sind am leichtesten. Plan 2 und 4 führen im Median zu ähnlichen Gewichten, allerdings reagieren die Hähnchen im Bezug auf ihre Gewichtszunahme bei Plan 2 recht unterschiedlich und bei Plan 4 eher gleichmäßig.
 ```{r boxPlot}
 ggplot(huhn_22, aes(x = factor(Diet), y = weight, fill = factor(Diet))) +
         geom_boxplot() +
@@ -124,11 +152,59 @@ ggplot(huhn_22, aes(x = factor(Diet), y = weight, fill = factor(Diet))) +
              fill = "Ernährungsplan") +
         theme_minimal()
 ```
+Dies sind allerdings weiterführende Thesen - nun wollen wir erst einmal testen, ob überhaupt ein signifikanter Unterschied des Gewichts besteht.
 
 ### 3.c
-Überprüfen zunächst grafisch die Normalverteilung für den neuen Datensatz.
+Um zu prüfen, ob die Wahl des Ernährungsplans einen signifikanten Unterschied im Gewicht der Hähnchen bedeutet, führen wir nun einen statistischen Test durch. Da wir vier verschiedene Gruppen miteinander vergleichen möchten, können wir eine ANOVA verwenden, sofern die Daten am 22. Tag normalverteilt sind. Dies überprüfen wir zunächst grafisch mithilfe eines QQ-Plots:
 ```{r qqPlot3}
 qqnorm(scale(huhn_22$weight)) #To scale() or not to scale()? That is the Question.
 qqline(scale(huhn_22$weight))
 ```
-Die Daten sind normalverteilt.
+Der QQ-Plot zeigt, dass die Daten normalverteilt sind. Dies sieht man daran, dass die Datenpunkte größtenteils auf der Geraden liegen und sich auch zu 50% links der Null befinden. Dies entspricht unserer Erwartung, da Gewicht in einer Population grundsätzlich normalverteilt ist.
+
+
+#### Vorwissen
+Am Tag 22 wurden insgesamt 45 Messungen in 4 Stichproben, die Ernährungsgruppen, erhoben.
+Wie zuvor gezeigt wurde, sind die Daten für den 22. Tag normalverteilt.
+
+#### Hypothesen
+Da wir zeigen wollen, dass die Ernährungsgruppe einen signifikanten Einfluss auf das Gewicht der Hähnchen hat, wählen wir unsere Hypothesen wie folgt:
+Nullhypothese H0: Es gibt keinen Unterschied im Gewicht zwischen den Ernährungsgruppen.
+Alternativhypothese H1: Es gibt mindestens eine Ernährungsgruppe, die sich signifikant unterscheidet.
+
+#### Wahl der Teststatistik
+Wir führen eine ANOVA durch, da wir 4 verschiedene Gruppen mit normalverteilten Daten haben.
+
+#### Wahl des Signifikanzniveaus
+Wir wählen ein Signifikanzniveau von 0.05, da wir keinen Grund haben, von diesem Standard abzuweichen.
+```{r alpha}
+alpha <- 0.05
+```
+
+#### Datenerhebung
+Wie oben beschrieben, nutzen wir die Daten der Hähnchen am 22. Tag
+
+#### Berechnung der Teststatistik
+```{r anova}
+anova_huhn_22 <- aov(weight ~ Diet, data = huhn_22)
+anova_summary <- summary(anova_huhn_22)
+print(anova_summary)
+```
+
+#### Testentscheidung
+```{r testEntscheidung}
+p_value <- anova_summary[[1]][["Pr(>F)"]][1]
+cat("Der p-Wert ist:", p_value, "\n")
+
+entscheidung <- ifelse(p_value < alpha,
+                       "H0 wird abgelehnt",
+                       "H0 kann nicht abgelehnt werden")
+cat("Entscheidung:", entscheidung, "\n")
+```
+
+#### Interpretation
+```{r interpretation}
+cat("Interpretation: ", ifelse(p_value < alpha,
+"Die Anova hat ergeben, dass es statistisch signifikante Unterschiede zwischen dem Gewicht der Hühner in Bezug auf ihren Ernährungsplänen bei mindestens einer Gruppe gibt. Der Ernährungsplan hat somit Auswirkungen auf das Gewicht der Hühner.",
+"Es konnte  kein signifikanten Unterschied im Hähnchengewicht in Bezug auf die Ernährungspläne nachgewiesen werden. Ob ein Zusammenhang zwischen Ernährungsplan und Gewicht existiert bleibt demnach weiter offen."), "\n")
+```
