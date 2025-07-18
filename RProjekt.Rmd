@@ -28,17 +28,27 @@ adjust_weight <- function(v, tolerated_deviation = 30)
   neighbour_mean <- rowMeans(cbind(day_before, day_after), na.rm = TRUE)
   
   # Ist das Gewicht kleiner als am Vortag, oder größer als am darauffolgenden Tag, dann wird das Gewicht angepasst.
-  extreme_vals <- ((v + tolerated_deviation) < day_before | v > (day_after + tolerated_deviation))
-  cat("\n",typeof(extreme_vals), "\n")
+  extreme_vals <- ((v + tolerated_deviation) < day_before)
 
-  extreme_vals[c(2:length(extreme_vals))] <- vapply(c(2:length(extreme_vals)), FUN = function(i) {
-    if (extreme_vals[i] == TRUE && extreme_vals[i-1] == TRUE) {
-      return(FALSE)}
-    else {return(extreme_vals[i])}},
-    FUN.VALUE = logical(1))
+
+  
+  extreme_vals[c(3:(length(extreme_vals) - 3))] <- vapply(
+  c(3:(length(extreme_vals) - 3)),
+  FUN = function(i) {
+    if (isTRUE(extreme_vals[i])) {
+      mean_diff2 <- mean(c(v[i - 2], v[i + 2]), na.rm = TRUE)
+      return(abs(v[i] - mean_diff2) > tolerated_deviation)
+    } else if (isTRUE(extreme_vals[i + 1])) {
+      mean_diff2 <- mean(c(v[i - 1], v[i + 3]), na.rm = TRUE)
+      return(!(abs(v[i + 1] - mean_diff2) > tolerated_deviation))
+    } else {
+      return(FALSE)
+    }
+  },
+  FUN.VALUE = logical(1)
+)
   
   adjusted_weight[extreme_vals] <- neighbour_mean[extreme_vals]
-  print(adjusted_weight)
   
   #Korrigierten Werte werden zurückgegeben
   return(adjusted_weight)
@@ -62,18 +72,14 @@ find_defect_values <- function(data, expected_id_count = 50, expected_observ_end
  #-------------------------------------Falschen Ernährungsplan abfangen----------------------------------------------------------------------------------
   i <- 1
   
-  cat(nrow(data)) 
-  #str(data)
-  #cat(table(data$Chick))
-  cat("Chick" %in% names(data))
-  
   split_data <- split(data, data$Chick)
     
   bereinigte_daten <- lapply(split_data, 
                              function(chicken){haeufigste_diet <- names(sort(table(chicken$Diet), decreasing = TRUE))[1]
                                                chicken$Diet <- haeufigste_diet
                                                chicken <- chicken[order(chicken$Time),]
-                                               chicken$weight <- adjust_weight(chicken$weight, tolerated_deviation = abweichung)
+                                               if (length(chicken$Diet) >= 7) {
+                                               chicken$weight <- adjust_weight(chicken$weight, tolerated_deviation = abweichung)}
                                                return(chicken)})
   bereinigte_daten <- do.call(rbind, bereinigte_daten)
   return(bereinigte_daten)
@@ -162,24 +168,8 @@ Den Ergebnissen aus dem Q-Q-Plot ist zu entnehmen, dass die Gewichtsdaten nicht 
 ### 2.a)
 
 ```{r linModell}
-df_Diets <- split(weight_test, weight_test$Diet)
 Modell_huhn <- lm(weight ~ Time + Diet, data = weight_test)
-Diets_Modells <- lapply(df_Diets, function(df) {lm(weight ~ Time, data = df)})
-lapply(Diets_Modells, function(lm) {summary(lm)})
-```
-
-```{r }
-# Vorbereiten der Regressionsgraden
-linien_list <- Map(function(modell, name) 
-                {coefs <- coef(modell)
-                 data.frame(intercept = coefs["(Intercept)"],
-                            slope = coefs["Time"],
-                            Diet = name)},
-                 Diets_Modells,
-                 names(Diets_Modells))
-
-# Umwandlung in df
-linien_df <- do.call(rbind, linien_list)
+summary(Modell_huhn)
 ```
 
 ### 2.b)
@@ -216,7 +206,6 @@ ggplot(weight_test, aes(x = Time, y = weight, color = factor(Diet))) +
 ### 2.d)
 
 ```{r diagGraf}
-#lapply(Diets_Modells,function(lm) {plot(lm)})
 invisible(lapply(c(1:4), function(i) {plot(Modell_huhn,i)}))
 ```
 
