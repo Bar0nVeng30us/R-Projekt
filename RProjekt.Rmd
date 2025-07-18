@@ -214,6 +214,7 @@ summary(Modell_huhn)
 ```
 
 ### 2.b)
+Wir nutzen eine Dummy-Kodierung für die Ernährungspläne. Dabei ist Plan 1 der Standardfall mit einer Standardfehler von ca. 3.3. Die anderen 3 Pläne haben einen Standardfehler um die 4.1 . Unser Modell scheint gut zu funktionieren, da der p-Wert nahe der Maschinengenauigkeit liegt. Allerdings scheint es starke Streuungen zu geben, da die Entfernung zwischen minimalem und maximalem Residuum sehr groß ist (dies wird später noch durch die Grafik bestätigt werden, in der wir sehen, dass die Gewichtswerte zum Ende der Messungen hin stark variieren.
 
 ### 2.c)
 Um das Modell besser zu verstehen, erstellen wir nun einen Plot davon.
