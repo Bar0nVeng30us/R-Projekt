@@ -136,14 +136,14 @@ Großteil der Pläne richtig eingetragen wurde.
 
 3. Bei der Gewichtszuname von Hähnchen erwarten wir innerhalb der ersten 22 Tage
 eine fast-lineare Zunahme. Das heißt, dass im Erwartungswert die Hähnchen
-an Tag t+2 schwerer sind, als an Tag t. Ist dies an Tag t nicht der Fall, 
+an Tag t+1 schwerer sind, als an Tag t. Ist dies an Tag t nicht der Fall, 
 so setzen wir das Gewicht von Tag t (g(t)) auf den Durchschnitt der Nachbartage 
-((g(t-1) + g(t+1))/2).Für einzelne Außreißer funktioniert dieses System gut, 
-sind allerdings mehrere Tage in Folge falsch, so bricht das System zusammen.
+((g(t-2) + g(t+2))/2).Für einzelne Außreißer funktioniert dieses System gut, 
+sind allerdings mehrere Tage in Folge falsch, so müsste man eine andere Variante wählen.
 Da dies aber relativ unwahrscheinlich ist, genügt uns die einfacherere Variante 
 wie sie hier implementiert wurde. Da das Gewicht eines Hühnchens leicht 
 fluktuieren kann, erlauben wir eine Toleranz, sodass nicht alle Werte, die nicht
-monoton Steigend sind, sofort korrigiert werden.
+monoton steigend sind, sofort korrigiert werden.
 
 ```{r korrektur}
 weight_test <- find_defect_values(data = weight_test)
