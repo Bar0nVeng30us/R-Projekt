@@ -142,7 +142,7 @@ cat(paste(diff_alter, "Tage nach dem Schlüpfen wurden",
 ```
 
 ### 1.e
-Die Werte werden in eine eigens dafür geschriebene Funktion eingelesen, die die
+Die+++ Werte werden in eine eigens dafür geschriebene Funktion eingelesen, die die
 Werte überprüft,unpassende Werte aussortiert und ggf. Werte anpasst. 
 Dafür verfahren wir nach folgendem Regeln:
 
@@ -184,7 +184,7 @@ cat(paste("\nDas Durchschnittsgewicht nach", names(durchschnittsgewicht),
 
 ### 1.g
 Es folgt eine grafische Darstellung der verschiedenen Ernährungspläne.
-```{r aufg1plot}
+```{r fig.cap = "Visualisierung des Datensatzes", fig.align = "center"}
 ggplot(
   data = weight_test,
   mapping = aes(x = Time,
@@ -198,7 +198,7 @@ Wir sehen in den Abbildungen deutlich, dass das Gewicht (wie oben auch erwartet)
 
 ### 1.h
 
-```{r}
+```{r fig.cap = "QQ-Plot für den gesamten Datensatz", fig.align = "center"}
 qqnorm(scale(weight_test$weight)) #To scale() or not to scale()? That is the Question.
 qqline(scale(weight_test$weight))
 ```
@@ -219,7 +219,7 @@ summary(Modell_huhn)
 
 ### 2.c)
 Um das Modell besser zu verstehen, erstellen wir nun einen Plot davon.
-```{r linReg1}
+```{r fig.cap = "Lineare Regression nach Ernährungslan", fig.align = "center"}
 ggplot(weight_test, aes(x = Time, y = weight, color = factor(Diet))) +
         geom_point() +
         geom_smooth(method = "lm", se = TRUE) +
@@ -242,7 +242,7 @@ Tukey-Anscombe, Normal QQ, Scale-Location, Leverage.
 
 <u>Leverage: </u> Beim Leverage-Plot ist wichtig zu beachten, dass die Leverage-Achse maximal bis 0.14 geht. Es sieht zwar so aus, als hätten viele Residuen einen hohen leverage-Wert, da  es dirt eine größere Gruppe mit starken AUsschlägen gibt, allerdings ist ein Leverage-Wert von 0.14 noch relativ klein, sodass die Residuen keinen großen Hebelwert haben.
 
-```{r diagGraf}
+```{r fig.cap = "Diagnostische Grafiken", fig.align = "center"}
 invisible(lapply(c(1:4), function(i) {plot(Modell_huhn,i)}))
 ```
 Unsere Schlussfolgerung dieser Aufgabe ist, dass von den Kriterien L(1)-L(5) die Kriterien L(1) und L(5) verletzt wurden. Es gibt zwar einige Außreißenden Werte, diese haben aber keine große Hebelwirkung. Es gilt weiterhin die Homoskedazität der Fehler.
@@ -252,7 +252,7 @@ Unsere Schlussfolgerung dieser Aufgabe ist, dass von den Kriterien L(1)-L(5) die
 
 ### 3.a)
 Wir betrachten nun einen Ausschnitt der Daten. In diesem sind nur Beobachtungen enthalten, in denen die Hähnchen ein Alter von 22 Tagen hatten. Im folgenden werden die ersten 6 Zeilen dieses Ausschnittes ausgegeben:
-```{r}
+```{r tbl-cap = "Die Ersten 6 Hühnchen an Tag 22"}
 huhn_22 <- subset(weight_test, Time == 22)
 print(head(huhn_22),6)
 ```
@@ -262,7 +262,7 @@ Wir haben als Grafik einen Box-Whisker-Plot gewählt. Denn hier kann man durch d
 
 Man sieht, dass die Hähnchen von Plan 3 mehr wiegen als die anderen Hähnchen und, dass die Hähnchen von Plan 1 tendenziell am leichtesten sind. Plan 2 besitzt die größten Gewichtsvielfalt, da sowohl die Whiskers am längsten sind, als auch der Bereich zwischen dem 75- und 25%-Quantil am größten ist. Dem entgegen hat Plan 4 kaum Ausschläge - hier liegen die Gewichte der Hähnchen also nah beeinander. Eine mögliche Interpretation des Plots wäre also: Hähnchen, die mit Plan 3 ernährt wurden, sind am schwerste, Hähnchen, die mit Plan 1 ernährt wurden, sind am leichtesten. Plan 2 und 4 führen im Median zu ähnlichen Gewichten, allerdings reagieren die Hähnchen im Bezug auf ihre Gewichtszunahme bei Plan 2 recht unterschiedlich und bei Plan 4 eher gleichmäßig.
 
-```{r boxPlot}
+```{r fig.cap = "Box-Whisker-Plot zu den 22 Tage alten Hühnchen nach Ernährungsplan", fig.align = "center"}
 ggplot(huhn_22, aes(x = factor(Diet), y = weight, fill = factor(Diet))) +
         geom_boxplot() +
         labs(title = "Vergleich der Gewichte bei 22 Tage alten Hähnchen",
@@ -278,7 +278,7 @@ Dies sind allerdings weiterführende Thesen - nun wollen wir erst einmal testen,
 Um zu prüfen, ob die Wahl des Ernährungsplans einen signifikanten Unterschied im Gewicht der Hähnchen bedeutet, führen wir nun einen statistischen Test durch. Da wir vier verschiedene Gruppen miteinander vergleichen möchten, können wir eine ANOVA verwenden, sofern die Daten am 22. Tag normalverteilt sind. Dies überprüfen wir zunächst grafisch mithilfe eines QQ-Plots:
 
 
-```{r qqPlot3}
+```{r fig.cap = "QQ-Plot für Tag 22", fig.align = "center"}
 qqnorm(scale(huhn_22$weight))
 qqline(scale(huhn_22$weight))
 ```
