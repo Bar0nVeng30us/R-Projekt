@@ -10,80 +10,101 @@ library(ggplot2)
 ```
 
 ```{r adjust_weight}
-adjust_weight <- function(v, tolerated_deviation = 30)
-{
-  #Funktion sorgt dafür, dass die Gewicht mit Toleranzfaktor "tolerated_deviation" monoton steigend sind.
+adjust_weight <- function(weight_vector, tolerated_deviation = 30){
+  ## ----------------------------------------------- ##
+  ## Funktion sorgt dafür, dass die Gewicht mit Toleranzfaktor 
+  ## "tolerated_deviation" monoton steigend sind.
   
-  #ACHTUNG: Diese Funktion kann nur Außreißer korrigieren, die eine Umgebung von nicht-Außreißern haben
-  #Bei zwei oder mehr extremen Werte hintereinander wird davon ausgegangen, dass dies kein Fehler mehr ist, den man korrigieren sollte,
-  #sondern, dass die Daten manuell auf Tauglichkeit untersucht werden sollten.
+  ## ACHTUNG: Diese Funktion kann nur Außreißer korrigieren, die eine Umgebung 
+  ## von nicht-Außreißern haben.
+  ## Bei zwei oder mehr extremen Werte hintereinander wird davon ausgegangen, 
+  ## dass dies kein Fehler mehr ist, den man korrigieren sollte,
+  ## sondern, dass die Daten manuell auf Tauglichkeit untersucht werden sollten.
+  ##
+  ## Die Funktion kann nur die "inneren" Daten überpruefen, da
+  ## zu den Randdaten die noetige Umgebung zur Korrektur fehlt.
+  ## ----------------------------------------------- ##
   
-  adjusted_weight <- v
+  adjusted_weight <- weight_vector
   
-  #Erzeuge Vektoren, die zum Vergleich mit Vortag bzw. Nachtag dienen
-  day_before  <- c(0, v[-length(v)])
-  day_after <- c(v[-1], 100000)
+  ## Erzeuge Vektoren, die zum Vergleich mit Vortag bzw. Nachtag dienen
+  day_before  <- c(0, weight_vector[-length(weight_vector)])
+  day_after <- c(weight_vector[-1], 100000)
   
-  #Berechne der Mittelwert der beiden umliegenden Tage
+  ## Berechne der Mittelwert der beiden umliegenden Tage
   neighbour_mean <- rowMeans(cbind(day_before, day_after), na.rm = TRUE)
   
-  # Ist das Gewicht kleiner als am Vortag, oder größer als am darauffolgenden Tag, dann wird das Gewicht angepasst.
-  extreme_vals <- ((v + tolerated_deviation) < day_before)
+  ## Ist das Gewicht kleiner als am Vortag, oder größer als am darauffolgenden 
+  ## Tag, dann wird das Gewicht angepasst.
+  extreme_vals <- ((weight_vector + tolerated_deviation) < day_before)
 
-
+  ## ----------------------------------------------- ##
+  ## Je nachdem ob der Ausreißer oberhalb oder unterhalb des erwarteten Wertes
+  ## liegt, ist der tatsaechliche Ausreißer oder der nachfolgende Wert
+  ## markiert worden.
+  ## Dies wird im Folgenden betrachtet.
+  ## ----------------------------------------------- ##
   
-  extreme_vals[c(3:(length(extreme_vals) - 3))] <- vapply(
-  c(3:(length(extreme_vals) - 3)),
+  extreme_vals[c(3:(length(extreme_vals) - 3))] <- vapply(c(3:(length(extreme_vals) - 3)),
   FUN = function(i) {
     if (isTRUE(extreme_vals[i])) {
-      mean_diff2 <- mean(c(v[i - 2], v[i + 2]), na.rm = TRUE)
-      return(abs(v[i] - mean_diff2) > tolerated_deviation)
+        mean_diff2 <- mean(c(weight_vector[i - 2], weight_vector[i + 2]), na.rm = TRUE)
+        return(abs(weight_vector[i] - mean_diff2) > tolerated_deviation)
     } else if (isTRUE(extreme_vals[i + 1])) {
-      mean_diff2 <- mean(c(v[i - 1], v[i + 3]), na.rm = TRUE)
-      return(!(abs(v[i + 1] - mean_diff2) > tolerated_deviation))
+        mean_diff2 <- mean(c(weight_vector[i - 1], weight_vector[i + 3]), na.rm = TRUE)
+        return(!(abs(weight_vector[i + 1] - mean_diff2) > tolerated_deviation))
     } else {
-      return(FALSE)
+        return(FALSE)
     }
   },
   FUN.VALUE = logical(1)
-)
+  )
   
+  ## Korrektur der bestimmten Ausreißer
   adjusted_weight[extreme_vals] <- neighbour_mean[extreme_vals]
   
-  #Korrigierten Werte werden zurückgegeben
+  ## Korrigierten Werte werden zurückgegeben
   return(adjusted_weight)
 }
 ```
 
 ```{r find_defect_values}
-find_defect_values <- function(data, expected_id_count = 50, expected_observ_end = 22, abweichung = 25)
+find_defect_values <- function(data, expected_observ_end = 22, abweichung = 25)
 {
-    #-------------------------------------#Falsche Messzeit abfangen------------------------------------------------------------------------------
-  
-  #Überprüfe, ob die EIngetragene Zeit außerhalb des Messraums liegt, oder ungerade ist (es wurde ja nur an geraden Tagen gemessen)
+  ## ----------------------------------------------- ##
+  ## Korrektur der Messzeit:
+  ## Ueberpruefe, ob die Eingetragene Zeit außerhalb des Messraums liegt, 
+  ## oder ungerade ist (es wurde ja nur an geraden Tagen gemessen)
+  ## ----------------------------------------------- ##
   correct_time_intervall <- (0 <= data$Time) & (expected_observ_end >= data$Time)
   correct_time_phase <- data$Time %% 2 == 0
   
-  #Falls die Zeit außerhalb des Zeitraums ist in dem wir gemessen haben, löschen wir die betroffenen Daten.
-  data <- data[correct_time_intervall & correct_time_phase,]
+  ## Falls die Zeit außerhalb des Zeitraums ist in dem wir gemessen haben, 
+  ## loeschen wir die betroffenen Daten.
+  data <- data[correct_time_intervall & correct_time_phase, ]
 
-  #------------------------------------------------------------------------------------------------------------------------------------------------------
+  ## ----------------------------------------------- ##
+  ## Fangen falsche Ernaehrungsplaene ab
+  ## Ueberpruefen die Gewichte je Huhn auf Ausreißer
+  ## Nutzen dafuer die Funktion adjust_weight()
+  ## ----------------------------------------------- ##
   
- #-------------------------------------Falschen Ernährungsplan abfangen----------------------------------------------------------------------------------
   i <- 1
-  
   split_data <- split(data, data$Chick)
     
   bereinigte_daten <- lapply(split_data, 
-                             function(chicken){haeufigste_diet <- names(sort(table(chicken$Diet), decreasing = TRUE))[1]
-                                               chicken$Diet <- haeufigste_diet
-                                               chicken <- chicken[order(chicken$Time),]
-                                               if (length(chicken$Diet) >= 7) {
-                                               chicken$weight <- adjust_weight(chicken$weight, tolerated_deviation = abweichung)}
-                                               return(chicken)})
+    function(chicken){
+      haeufigste_diet <- names(sort(table(chicken$Diet), decreasing = TRUE))[1]
+      chicken$Diet <- haeufigste_diet
+      chicken <- chicken[order(chicken$Time), ]
+      if (length(chicken$Diet) >= 7) {
+        chicken$weight <- adjust_weight(chicken$weight, tolerated_deviation = abweichung)
+        }
+      return(chicken)
+      }
+    )
   bereinigte_daten <- do.call(rbind, bereinigte_daten)
   return(bereinigte_daten)
-
 }
 ```
 
@@ -258,7 +279,7 @@ Um zu prüfen, ob die Wahl des Ernährungsplans einen signifikanten Unterschied 
 
 
 ```{r qqPlot3}
-qqnorm(scale(huhn_22$weight)) #To scale() or not to scale()? That is the Question.
+qqnorm(scale(huhn_22$weight))
 qqline(scale(huhn_22$weight))
 ```
 Der QQ-Plot zeigt, dass die Daten normalverteilt sind. Dies sieht man daran, dass die Datenpunkte größtenteils auf der Geraden liegen und sich auch zu 50% links der Null befinden. Dies entspricht unserer Erwartung, da Gewicht in einer Population grundsätzlich normalverteilt ist.
