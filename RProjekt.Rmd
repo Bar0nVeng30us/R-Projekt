@@ -99,11 +99,16 @@ print(lapply(Diets_Modells, function(lm) {summary(lm)}))
 
 
 ### 2.b)
-Unser Lineares Modell funktioniert mit einer Dummy-Kodierung für die verschiedenen Ernährungpläne. Dabei ist der Ernährungsplan 1 als Standard gesetzt.
-Bei diesem liegt der Standardfehler bei ungefähr 3.3, während der Standardfehler bei den anderen Plänen zwischen 4.7 und 4.1 liegt. 
-Dies liegt vermutlich daran, dass die Gewicht zu Ende der Beobachtungen in allen Gruppen stark von Hähnchen zu Hähnchen variieren. 
-Dies sieht man zum einen in der folgenden Grafik und auch daran, dass die Residuen zwischen -143 und 140 liegen.
-Da aber der Median der Residun relativ klein ist (betragsmäßig bei 2.7 liegt) und unser p-Wert nahe der Maschinengenauigkeit liegt, schließen wir, 
+Unser Lineares Modell funktioniert mit einer Dummy-Kodierung für die 
+verschiedenen Ernährungpläne. Dabei ist der Ernährungsplan 1 als Standard gesetzt.
+Bei diesem liegt der Standardfehler bei ungefähr 3.3, während der Standardfehler 
+bei den anderen Plänen zwischen 4.7 und 4.1 liegt. 
+Dies liegt vermutlich daran, dass die Gewicht zu Ende der Beobachtungen in allen 
+Gruppen stark von Hähnchen zu Hähnchen variieren. 
+Dies sieht man zum einen in der folgenden Grafik und auch daran, dass die Residuen
+zwischen -143 und 140 liegen.
+Da aber der Median der Residun relativ klein ist (betragsmäßig bei 2.7 liegt) 
+und unser p-Wert nahe der Maschinengenauigkeit liegt, schließen wir, 
 dass das lineare Modell eine gute Approximation der Gewichte der Hähnchen darstellt.
 
 
