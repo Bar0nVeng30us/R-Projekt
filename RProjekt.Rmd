@@ -11,6 +11,8 @@ library(ggplot2)
 
 ## Aufgabe 1
 Wir laden die heruntergeladenen Daten "weight-test-2025.txt" in den Dataframe "weight_test"
+
+
 ### 1.b
 Lesen die Daten ein.
 ```{r getData}
